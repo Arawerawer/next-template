@@ -10,7 +10,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - 前後端分離：Next 只負責畫面與串接 API，不直接存取資料庫，也不放商業邏輯。
 - 後端是另一個 NestJS 專案（DDD、Supabase DB + Auth、檔案存 R2、CI/CD 部署到 Cloud Run），不在這個 repo。
-- 預定技術棧：shadcn/ui、zod、axios、TanStack Query、`@supabase/ssr`。
+- 已安裝：shadcn/ui（全部元件）。
+- 預定技術棧（尚未安裝）：zod、axios、TanStack Query、`@supabase/ssr`、`next-themes` 深色模式切換（套件已隨 shadcn 裝入，但尚未接上）。
 - 下方「目標架構」是已和使用者確認的設計，**尚未實作**；動手前先確認對應檔案和套件是否已存在。
 
 ## 目標架構（已確認，尚未實作）
@@ -45,6 +46,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 部署到 Cloudflare Workers，使用 Cloudflare 的 Git 自動部署（Workers Builds）。
 - Cloudflare 不是 Next 官方 verified adapter，需透過 Cloudflare 自己的 Next 整合（OpenNext）部署；Next 16.4 搭配 `cacheComponents` / `partialPrefetching` 的相容性要實測。
 
+## 文件維護
+
+- `README.md` 的「檔案結構」是使用者核對專案架構用的；新增、刪除或搬移資料夾與重要檔案時，同步更新那段 file tree。
+
 ## 指令
 
 - `npm run lint`：ESLint 9 flat config（`eslint-config-next` 的 core-web-vitals + typescript）。
@@ -75,4 +80,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - 沒有 `postcss.config`，Tailwind 是透過 `next.config.ts` 的 `turbopack.rules` 用 `@tailwindcss/turbopack` loader 處理所有 `*.css`。
 - Tailwind v4 CSS-first 設定：主題 token 寫在 `app/globals.css` 的 `@theme inline`，沒有 `tailwind.config.*`。
-- 顏色以 CSS 變數 `--background` / `--foreground` 定義，深色模式用 `prefers-color-scheme` 切換；字型由 `next/font` 的 Geist 注入 `--font-geist-sans` / `--font-geist-mono`。
+- 顏色用 shadcn 的 CSS 變數（`--primary`、`--background` 等，oklch）。深色模式靠 `<html>` 上的 `.dark` class（`@custom-variant dark`），目前沒有任何東西加上它，所以網站永遠是淺色。
+
+### shadcn/ui
+
+- 設定在 `components.json`：style `radix-vega`、底層 Radix、圖示 lucide、baseColor neutral。
+- 切版時優先使用 `components/ui/` 的現成元件和 shadcn blocks（`npx shadcn@latest add <名稱>`），不要用 Tailwind 手刻按鈕、彈窗這類已有的元件。
+- `components/ui/` 只放 shadcn 產生的元件；自訂元件放 `components/` 底下的其他資料夾。
+- `cn()` 從 `@/lib/utils` 匯入，底層是 shadcn 官方的 `cn` 套件（取代 clsx + tailwind-merge）。
+- `combobox` 只有 Base UI 版本，所以 `@base-ui/react` 也在相依套件裡，屬正常。
+- `components/ui/carousel.tsx` 和 `hooks/use-mobile.ts` 為了通過 lint（`react-hooks/set-state-in-effect`）改寫成 `useSyncExternalStore`；用 `add --overwrite` 重新產生會蓋掉修改，lint 會再壞。
+
+### 資料夾分工
+
+- `hooks/`：自訂 React hooks（client 端）。
+- `lib/`：非畫面的工具程式碼；之後的 axios instance、`queryOptions`、Supabase client、zod schema 也放這裡。
+
+### 字型與語系
+
+- `<html lang="zh-Hant-TW">`，內容以繁體中文為主。
+- `app/layout.tsx` 用 `next/font/google` 載入：Inter（`--font-inter`，英文和數字）、Noto Sans TC（`--font-noto-sans-tc`，中文，`preload: false` 因為字檔大）、Geist Mono（`--font-geist-mono`，程式碼）。
+- `globals.css` 的 `--font-sans` 順序：Inter → Noto Sans TC → PingFang TC → Microsoft JhengHei。Inter 沒有中文字，中文會自動落到 Noto Sans TC，所以 Inter 必須排在前面。
