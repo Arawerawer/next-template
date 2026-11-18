@@ -11,7 +11,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 前後端分離：Next 只負責畫面與串接 API，不直接存取資料庫，也不放商業邏輯。
 - 後端是另一個 NestJS 專案（DDD、Supabase DB + Auth、檔案存 R2、CI/CD 部署到 Cloud Run），不在這個 repo。
 - 已安裝：shadcn/ui（全部元件）。
-- 預定技術棧（尚未安裝）：zod、axios、TanStack Query、`@supabase/ssr`、`next-themes` 深色模式切換（套件已隨 shadcn 裝入，但尚未接上）。
+- 已接上：`next-themes` 深色模式切換。
+- 預定技術棧（尚未安裝）：zod、axios、TanStack Query、`@supabase/ssr`。
 - 下方「目標架構」是已和使用者確認的設計，**尚未實作**；動手前先確認對應檔案和套件是否已存在。
 
 ## 目標架構（已確認，尚未實作）
@@ -80,7 +81,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - 沒有 `postcss.config`，Tailwind 是透過 `next.config.ts` 的 `turbopack.rules` 用 `@tailwindcss/turbopack` loader 處理所有 `*.css`。
 - Tailwind v4 CSS-first 設定：主題 token 寫在 `app/globals.css` 的 `@theme inline`，沒有 `tailwind.config.*`。
-- 顏色用 shadcn 的 CSS 變數（`--primary`、`--background` 等，oklch）。深色模式靠 `<html>` 上的 `.dark` class（`@custom-variant dark`），目前沒有任何東西加上它，所以網站永遠是淺色。
+- 顏色用 shadcn 的 CSS 變數（`--primary`、`--background` 等，oklch）。深色模式靠 `<html>` 上的 `.dark` class（`@custom-variant dark`），由 `next-themes` 切換。
+- 深色模式照 shadcn 官方做法：`components/theme/theme-provider.tsx` 包在根 layout（`attribute="class"`、預設跟隨系統），`<html>` 有 `suppressHydrationWarning`；切換按鈕是 `components/theme/mode-toggle.tsx`（淺色／深色／跟隨系統），放在各 header 右上角。
 
 ### shadcn/ui
 
@@ -95,6 +97,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `hooks/`：自訂 React hooks（client 端）。
 - `lib/`：非畫面的工具程式碼；之後的 axios instance、`queryOptions`、Supabase client、zod schema 也放這裡。
+- `lib/site.ts`：網站名稱、標語、描述，header、`<title>`、首頁都從這裡讀，不要把名稱寫死在元件裡。
+
+### 範例功能（Notely 筆記）
+
+- 模板內建一個完整但簡化的範例：行銷首頁 `/`、`/login`、`/signup`、筆記 CRUD `/notes`。新功能照這組的寫法做。
+- 路由用 route group 分三種版型：`(marketing)`、`(auth)`、`(app)`；登入保護只加在 `(app)`。
+- 目前是**靜態階段**：表單不送出、筆記是 `app/(app)/notes/page.tsx` 裡的假資料，標了「靜態階段」註解的地方都是之後要接 Auth / API 的位置。
+- 不做 mock 後端：CRUD 會真的串 Nest、真的部署。
+- 進度與下一步（依序）：
+  1. ✅ 靜態畫面（四頁）＋ 深色模式切換
+  2. 部署空殼到 Cloudflare（OpenNext），先驗證 Next 16.4 + `cacheComponents` 能不能跑
+  3. Supabase Auth：註冊、登入、登出、`proxy.ts` 刷新 token、`(app)` 擋未登入（只做 email + 密碼）
+  4. zod、axios ×2、TanStack Query 骨架，`lib/notes.ts` 放 schema 與 `queryOptions`
+  5. Nest 完成後接上 CRUD，刪掉假資料
+
+### Provider 寫法
+
+- 需要 React Context 的 Provider（`next-themes`、之後的 TanStack Query）一律在 `components/` 下包一個 `"use client"` 元件，再由根 layout（Server Component）引用。
 
 ### 字型與語系
 

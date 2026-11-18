@@ -18,16 +18,31 @@
 ```
 next-template/
 ├── app/                      # App Router 路由
-│   ├── layout.tsx            # 根 layout（字型、全域樣式）
-│   ├── page.tsx              # 首頁
+│   ├── layout.tsx            # 根 layout（字型、全域樣式、metadata）
+│   ├── (marketing)/          # 行銷頁（header + footer）
+│   │   ├── layout.tsx
+│   │   └── page.tsx          # /
+│   ├── (auth)/               # 登入、註冊（置中卡片版型）
+│   │   ├── layout.tsx
+│   │   ├── login/page.tsx    # /login
+│   │   └── signup/page.tsx   # /signup
+│   ├── (app)/                # 登入後頁面（之後在這組擋未登入）
+│   │   ├── layout.tsx
+│   │   └── notes/page.tsx    # /notes：筆記 CRUD
 │   ├── globals.css           # Tailwind 與 shadcn 主題色 CSS 變數
 │   └── favicon.ico
 ├── components/
-│   └── ui/                   # shadcn 產生的元件（勿大改，自訂元件放 components/ 其他資料夾）
+│   ├── ui/                   # shadcn 產生的元件（勿大改，自訂元件放 components/ 其他資料夾）
+│   ├── site/                 # Logo、header、footer
+│   ├── theme/                # ThemeProvider、亮暗切換按鈕
+│   ├── auth/                 # 登入、註冊表單
+│   └── notes/                # 筆記卡片、新增／編輯 Dialog、刪除確認
 ├── hooks/                    # 自訂 React hooks（client 端）
 │   ├── use-mobile.ts         # 判斷是否為手機寬度
 │   └── use-highlighted-code.ts  # 程式碼區塊語法上色
 ├── lib/                      # 非畫面的工具程式碼
+│   ├── site.ts               # 網站名稱、標語、描述（開新專案改這裡）
+│   ├── notes.ts              # Note 型別（之後放 zod schema、queryOptions）
 │   ├── utils.ts              # cn()：合併 Tailwind class
 │   └── highlighter.tsx       # shiki 語法上色設定
 ├── public/                   # 靜態檔案
