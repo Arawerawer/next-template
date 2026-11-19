@@ -46,8 +46,13 @@ next-template/
 │   ├── utils.ts              # cn()：合併 Tailwind class
 │   └── highlighter.tsx       # shiki 語法上色設定
 ├── public/                   # 靜態檔案
+│   └── _headers              # Cloudflare 靜態檔快取標頭
+├── proxy.ts                  # 請求前置處理（之後做 token 刷新、/api/* 轉 Bearer）
 ├── components.json           # shadcn CLI 設定
-├── next.config.ts            # Next 設定（cacheComponents、Tailwind turbopack loader）
+├── next.config.ts            # Next 設定（cacheComponents、Tailwind turbopack loader、OpenNext dev）
+├── open-next.config.ts       # OpenNext 設定（快取策略）
+├── wrangler.jsonc            # Cloudflare Worker 設定（名稱、相容性旗標）
+├── .dev.vars.example         # 本機 preview 用的 Worker 變數範本（複製成 .dev.vars）
 ├── eslint.config.mjs
 ├── tsconfig.json             # 路徑別名 @/* → 專案根目錄
 ├── AGENTS.md                 # Next 自動產生的 AI 規則
@@ -64,4 +69,24 @@ npm run dev          # 開發伺服器 http://localhost:3000
 npm run lint         # ESLint
 npx tsc --noEmit     # 型別檢查
 npx shadcn@latest add <元件名>   # 新增 shadcn 元件或 block
+npm run preview      # 用 Workers runtime 在本機跑建置結果
+npm run deploy       # 從本機建置並部署到 Cloudflare（建議改用 Git 自動部署）
 ```
+
+---
+
+## 部署到 Cloudflare Workers
+
+使用 [OpenNext](https://opennext.js.org/cloudflare)（`@opennextjs/cloudflare`）＋ Workers Builds Git 自動部署。
+
+1. 開新專案時，把 `wrangler.jsonc` 的 `name` 和 `services[0].service` 改成同一個名稱。
+2. Cloudflare 後台 → Workers & Pages → Create → Import a repository，選這個 repo。
+3. Settings → Build：
+   - Build command：`npx @opennextjs/cloudflare build`
+   - Deploy command：`npx @opennextjs/cloudflare deploy`
+4. 環境變數：
+   - `NEXT_PUBLIC_*` 和 build 時要用的變數放「Build variables and secrets」。
+   - 執行時的變數和密鑰放「Variables & Secrets」；若在後台設定，deploy command 要加 `-- --keep-vars`，否則每次部署會被清掉。
+5. push 到 production branch 就會自動建置部署。
+
+注意：Workers 免費方案單一 Worker 上限 3 MiB（gzip 後），付費方案 10 MiB。

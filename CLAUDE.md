@@ -12,6 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 後端是另一個 NestJS 專案（DDD、Supabase DB + Auth、檔案存 R2、CI/CD 部署到 Cloud Run），不在這個 repo。
 - 已安裝：shadcn/ui（全部元件）。
 - 已接上：`next-themes` 深色模式切換。
+- 已安裝：`@opennextjs/cloudflare` + `wrangler`（部署到 Cloudflare Workers）。
 - 預定技術棧（尚未安裝）：zod、axios、TanStack Query、`@supabase/ssr`。
 - 下方「目標架構」是已和使用者確認的設計，**尚未實作**；動手前先確認對應檔案和套件是否已存在。
 
@@ -42,10 +43,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 使用者資料不用 `use cache`，避免和 TanStack Query 形成兩層快取。
 - zod 用於表單驗證、API 回應解析、環境變數驗證。
 
-### 部署
+### 部署（已設定，待實測）
 
-- 部署到 Cloudflare Workers，使用 Cloudflare 的 Git 自動部署（Workers Builds）。
-- Cloudflare 不是 Next 官方 verified adapter，需透過 Cloudflare 自己的 Next 整合（OpenNext）部署；Next 16.4 搭配 `cacheComponents` / `partialPrefetching` 的相容性要實測。
+- 部署到 Cloudflare Workers，用 `@opennextjs/cloudflare`（OpenNext）＋ Workers Builds Git 自動部署；步驟寫在 `README.md`。
+- 不用 Cloudflare 首推的 vinext：它的 `cacheComponents` 不完整、沒有 PPR。
+- `@opennextjs/cloudflare` 1.20.16 起要求 Next ≥ 16.4.5，升級 Next 時注意相容範圍（看它的 `peerDependencies`）。
+- `proxy.ts`（Node middleware）在 OpenNext 1.20.3 起是 experimental；若在 Workers 上不能跑，退回 `middleware.ts`，或改用 Route Handler 轉發 `/api/*`。
+- 目前沒用 ISR / `revalidateTag`，`open-next.config.ts` 是空設定，不綁 R2 / D1 / Durable Objects；**不要開 `enableCacheInterception`**（和 PPR 衝突）。
+- 不要加 `export const runtime = "edge"`，OpenNext 不支援 edge runtime。
+- `package.json` 的 `allowScripts` 是 npm 12 的安裝腳本白名單（`esbuild`、`workerd` 要下載平台執行檔）。
 
 ## 文件維護
 
@@ -107,7 +113,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 不做 mock 後端：CRUD 會真的串 Nest、真的部署。
 - 進度與下一步（依序）：
   1. ✅ 靜態畫面（四頁）＋ 深色模式切換
-  2. 部署空殼到 Cloudflare（OpenNext），先驗證 Next 16.4 + `cacheComponents` 能不能跑
+  2. 🚧 部署空殼到 Cloudflare（OpenNext），先驗證 Next 16.4 + `cacheComponents` 能不能跑（設定檔已完成，待接 Workers Builds 實測；`proxy.ts` 目前只加 `x-proxy: ok` header 供驗證）
   3. Supabase Auth：註冊、登入、登出、`proxy.ts` 刷新 token、`(app)` 擋未登入（只做 email + 密碼）
   4. zod、axios ×2、TanStack Query 骨架，`lib/notes.ts` 放 schema 與 `queryOptions`
   5. Nest 完成後接上 CRUD，刪掉假資料

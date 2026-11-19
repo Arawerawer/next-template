@@ -15,3 +15,7 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
+// 讓 next dev 也能用 Cloudflare bindings（getCloudflareContext）
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+initOpenNextCloudflareForDev();

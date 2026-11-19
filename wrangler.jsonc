@@ -1,0 +1,33 @@
+// ==========================================
+// 1. Cloudflare Worker 設定（OpenNext）
+// ==========================================
+// 開新專案時改 name，services[0].service 要跟 name 一致。
+// 目前沒有 ISR / revalidateTag，所以不綁 R2、D1、Durable Objects。
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "next-template",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+
+  // ==========================================
+  // 2. 靜態檔案與自我參照
+  // ==========================================
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "next-template"
+    }
+  ],
+
+  // ==========================================
+  // 3. 觀測
+  // ==========================================
+  "observability": {
+    "enabled": true
+  }
+}
