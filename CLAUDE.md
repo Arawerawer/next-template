@@ -117,7 +117,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 進度與下一步（依序）：
   1. ✅ 靜態畫面（四頁）＋ 深色模式切換
   2. ✅ 部署空殼到 Cloudflare（OpenNext）：`cacheComponents` 有已知 bug 先關閉；`proxy.ts` 目前只加 `x-proxy: ok` header 供驗證
-  3. Supabase Auth：註冊、登入、登出、`proxy.ts` 刷新 token、`(app)` 擋未登入（只做 email + 密碼）
+  3. ⏭️ Supabase Auth：註冊、登入、登出、`proxy.ts` 刷新 token、`(app)` 擋未登入（只做 email + 密碼）
+     - 這步是 Next server ↔ Supabase，不經過 Nest；`/api/*` 轉發給 Nest 留到第 5 步。
+     - 開工前要使用者提供：Supabase 專案（必須和 Nest 同一個，Nest 才驗得了 JWT）、Project URL、publishable（anon）key。
+     - 環境變數要設三處：本機 `.env`、Cloudflare「Build variables」（`NEXT_PUBLIC_*` 在 build 時寫進 bundle）、Cloudflare「Variables & Secrets」（runtime）；用 zod 驗證。
+     - 待使用者決定：Supabase 要不要開 email 驗證（開了要多做 callback 路由，並在 Supabase 加 localhost 與 workers.dev 的 redirect URL）。
   4. zod、axios ×2、TanStack Query 骨架，`lib/notes.ts` 放 schema 與 `queryOptions`
   5. Nest 完成後接上 CRUD，刪掉假資料
 
