@@ -129,10 +129,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 進度與下一步（依序）：
   1. ✅ 靜態畫面（四頁）＋ 深色模式切換
   2. ✅ 部署空殼到 Cloudflare（OpenNext）：`cacheComponents` 有已知 bug 先關閉；`proxy.ts` 在 Workers 上實測可用
-  3. ✅ Supabase Auth：註冊、登入、登出、`proxy.ts` 刷新 token、`(app)` 擋未登入（只做 email + 密碼）
+  3. ✅ Supabase Auth：註冊、登入、登出、`proxy.ts` 刷新 token、`(app)` 擋未登入（只做 email + 密碼）；本機與正式環境都已實測通過（2026-11-20，commit `c27f61d`）
      - Supabase 專案 `project-template`（Tokyo `ap-northeast-1`），之後 Nest 也接這個（Nest 用 JWKS 驗 JWT、連線走 Supavisor transaction mode port 6543）。
      - 不做 email 驗證（Supabase「Confirm email」關閉）；要開時另做 callback 路由，並在 Supabase 加 localhost 與 workers.dev 的 redirect URL。
-     - 環境變數只有 `NEXT_PUBLIC_*` 兩個：本機 `.env.local`、Cloudflare「Build variables」；目前不需要 runtime 變數。
+     - 環境變數只有 `NEXT_PUBLIC_*` 兩個：本機 `.env.local`、Cloudflare「Build variables」（已設定）；目前不需要 runtime 變數。
+     - Supabase 後台已設定：Minimum password length 8（和 `lib/auth/schemas.ts` 一致，改一邊要改另一邊）；建專案時關閉自動授權新表給 Data API、開啟新表自動 RLS。
+     - 新版 Supabase 後台的「Confirm email」在 Authentication → Sign In / Providers 頁面最上方「User Signups」，不在 Email provider 面板裡。
   4. ⏭️ axios ×2、TanStack Query 骨架（zod 已裝），`lib/notes.ts` 放 schema 與 `queryOptions`
   5. Nest 完成後接上 CRUD，刪掉假資料
 
