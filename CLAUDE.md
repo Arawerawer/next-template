@@ -20,8 +20,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### 渲染
 
-- 保留 `cacheComponents`，所有頁面在 server 渲染，不做純 client 端渲染的頁面。
-- 讀 `cookies()` 的元件一律包在 `<Suspense>` 裡（沒包會 build 失敗）；layout 頂層不 `await` session。
+- 目標是開 `cacheComponents`，但**目前暫時關閉**（見下方「部署」）；所有頁面在 server 渲染，不做純 client 端渲染的頁面。
+- 程式碼一律照 `cacheComponents` 的規則寫，打開時才不用改：讀 `cookies()` / `headers()` / `searchParams` / 未快取的 fetch 的元件包在 `<Suspense>` 裡；layout 頂層不 `await` session。關閉期間 build 不會擋這些錯，要自己注意。
 
 ### Auth（cookie + Bearer）
 
@@ -43,9 +43,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 使用者資料不用 `use cache`，避免和 TanStack Query 形成兩層快取。
 - zod 用於表單驗證、API 回應解析、環境變數驗證。
 
-### 部署（已設定，待實測）
+### 部署（已上線）
 
 - 部署到 Cloudflare Workers，用 `@opennextjs/cloudflare`（OpenNext）＋ Workers Builds Git 自動部署；步驟寫在 `README.md`。
+- 網址：`https://next-template.a0979699161.workers.dev`。
+- **`cacheComponents` / `partialPrefetching` 暫時關閉**：Next 16.4 + Cache Components 在 workerd 上渲染會卡死（每頁 500、log 顯示 Worker hung，並有 `setTimeout()` 相容性警告）。原因是 workerd 的計時器／`nextTick` 執行順序和 Node 不同。追蹤 OpenNext issue #1450、PR #1318；PR 合併並發布後，把 `next.config.ts` 兩個旗標改回 `true`，重新部署驗證。
 - 不用 Cloudflare 首推的 vinext：它的 `cacheComponents` 不完整、沒有 PPR。
 - `@opennextjs/cloudflare` 1.20.16 起要求 Next ≥ 16.4.5，升級 Next 時注意相容範圍（看它的 `peerDependencies`）。
 - `proxy.ts`（Node middleware）在 OpenNext 1.20.3 起是 experimental；若在 Workers 上不能跑，退回 `middleware.ts`，或改用 Route Handler 轉發 `/api/*`。
@@ -76,7 +78,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 路徑別名 `@/*` 指向專案根目錄。
 - `layout.tsx` 用全域型別 `LayoutProps<"/">`（Next 自動產生的路由型別，型別在 `.next/types`），新的 layout / page 沿用 `LayoutProps` / `PageProps` 這類 helper。
 
-### `next.config.ts` 開了會改變行為的旗標
+### `next.config.ts` 會改變行為的旗標（目前兩個都暫時關閉，以下是打開後的行為）
 
 - `cacheComponents: true`：資料抓取預設為動態，要快取得明確用 `"use cache"` + `cacheLife` / `cacheTag`。預設啟用 PPR（靜態 shell + 串流動態內容）。
   - 不支援 route segment config 的 `runtime` export（含 `runtime = 'nodejs'`），不要加。
@@ -114,7 +116,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 不做 mock 後端：CRUD 會真的串 Nest、真的部署。
 - 進度與下一步（依序）：
   1. ✅ 靜態畫面（四頁）＋ 深色模式切換
-  2. 🚧 部署空殼到 Cloudflare（OpenNext），先驗證 Next 16.4 + `cacheComponents` 能不能跑（設定檔已完成，待接 Workers Builds 實測；`proxy.ts` 目前只加 `x-proxy: ok` header 供驗證）
+  2. ✅ 部署空殼到 Cloudflare（OpenNext）：`cacheComponents` 有已知 bug 先關閉；`proxy.ts` 目前只加 `x-proxy: ok` header 供驗證
   3. Supabase Auth：註冊、登入、登出、`proxy.ts` 刷新 token、`(app)` 擋未登入（只做 email + 密碼）
   4. zod、axios ×2、TanStack Query 骨架，`lib/notes.ts` 放 schema 與 `queryOptions`
   5. Nest 完成後接上 CRUD，刪掉假資料

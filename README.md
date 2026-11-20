@@ -6,7 +6,7 @@
 
 ## 技術棧
 
-- Next.js 16（App Router、`cacheComponents`）
+- Next.js 16（App Router；`cacheComponents` 因 OpenNext 相容性問題暫時關閉）
 - React 19、TypeScript
 - Tailwind CSS 4
 - shadcn/ui（Radix、Vega 風格，已安裝全部元件）
@@ -49,7 +49,7 @@ next-template/
 │   └── _headers              # Cloudflare 靜態檔快取標頭
 ├── proxy.ts                  # 請求前置處理（之後做 token 刷新、/api/* 轉 Bearer）
 ├── components.json           # shadcn CLI 設定
-├── next.config.ts            # Next 設定（cacheComponents、Tailwind turbopack loader、OpenNext dev）
+├── next.config.ts            # Next 設定（cacheComponents 開關、Tailwind turbopack loader、OpenNext dev）
 ├── open-next.config.ts       # OpenNext 設定（快取策略）
 ├── wrangler.jsonc            # Cloudflare Worker 設定（名稱、相容性旗標）
 ├── .dev.vars.example         # 本機 preview 用的 Worker 變數範本（複製成 .dev.vars）
