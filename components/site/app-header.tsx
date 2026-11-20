@@ -1,25 +1,15 @@
-import Link from "next/link";
-import { ChevronDownIcon, LogOutIcon } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Suspense } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Logo } from "@/components/site/logo";
+import { UserMenu } from "@/components/site/user-menu";
 import { ModeToggle } from "@/components/theme/mode-toggle";
+import { getCurrentUser } from "@/lib/auth/user";
 
 // ==========================================
 // 1. 登入後 header
 // ==========================================
 
-// 靜態階段先寫死，接 Auth 後改從 session 取得
-const email = "user@example.com";
-
+// 讀使用者的部分包在 <Suspense> 裡，header 其他部分不用等 session
 export function AppHeader() {
   return (
     <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
@@ -27,30 +17,20 @@ export function AppHeader() {
         <Logo href="/notes" />
         <div className="flex items-center gap-2">
           <ModeToggle />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2">
-                <Avatar className="size-6">
-                  <AvatarFallback>{email[0].toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <span className="hidden sm:inline">{email}</span>
-                <ChevronDownIcon />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="truncate">{email}</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {/* 接 Auth 後改成呼叫登出 Server Action */}
-              <DropdownMenuItem asChild>
-                <Link href="/">
-                  <LogOutIcon />
-                  登出
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Suspense fallback={<Skeleton className="h-9 w-40" />}>
+            <CurrentUserMenu />
+          </Suspense>
         </div>
       </div>
     </header>
   );
+}
+
+// ==========================================
+// 2. 目前使用者
+// ==========================================
+
+async function CurrentUserMenu() {
+  const user = await getCurrentUser();
+  return <UserMenu email={user.email} />;
 }

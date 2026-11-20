@@ -13,10 +13,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 已安裝：shadcn/ui（全部元件）。
 - 已接上：`next-themes` 深色模式切換。
 - 已安裝：`@opennextjs/cloudflare` + `wrangler`（部署到 Cloudflare Workers）。
-- 預定技術棧（尚未安裝）：zod、axios、TanStack Query、`@supabase/ssr`。
-- 下方「目標架構」是已和使用者確認的設計，**尚未實作**；動手前先確認對應檔案和套件是否已存在。
+- 已安裝：`@supabase/ssr` + `@supabase/supabase-js`（Supabase Auth）、zod。
+- 預定技術棧（尚未安裝）：axios、TanStack Query。
+- 下方「目標架構」是已和使用者確認的設計，Auth 已實作，資料抓取（axios、TanStack Query、`/api/*` 轉發）**尚未實作**；動手前先確認對應檔案和套件是否已存在。
 
-## 目標架構（已確認，尚未實作）
+## 目標架構（已確認，部分實作）
 
 ### 渲染
 
@@ -24,6 +25,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 程式碼一律照 `cacheComponents` 的規則寫，打開時才不用改：讀 `cookies()` / `headers()` / `searchParams` / 未快取的 fetch 的元件包在 `<Suspense>` 裡；layout 頂層不 `await` session。關閉期間 build 不會擋這些錯，要自己注意。
 
 ### Auth（cookie + Bearer）
+
+- 分工：Supabase 只當 Auth 和資料庫；CRUD、商業邏輯全部在 Nest（直連 Postgres）；不用 Supabase 的 Data API、Storage、Realtime。
+- 已實作（第 3 步）：
+  - `lib/env.ts`：zod 驗證 `NEXT_PUBLIC_SUPABASE_URL`、`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`；新增 `NEXT_PUBLIC_*` 時要逐一寫 `process.env.XXX`（build 時才會內嵌）。
+  - `lib/supabase/server.ts`：`await createClient()`，給 Server Component / Server Action 用。
+  - `lib/supabase/proxy.ts`：`updateSession()` 刷新 token，回傳 `{ response, isLoggedIn }`；建立 client 後必須馬上呼叫 `getClaims()`，中間不要插邏輯。
+  - `proxy.ts`：`protectedPrefixes`（目前 `/notes`）未登入導 `/login`；`authRoutes` 已登入導 `/notes`；導頁要用 `redirectWithCookies()`，否則剛刷新的 token 會遺失。
+  - `lib/auth/user.ts`：`getCurrentUser()` 是登入後頁面取使用者的唯一入口（React `cache` 去重，沒登入 `redirect('/login')`），呼叫的元件包 `<Suspense>`。
+  - `lib/auth/actions.ts`：`login` / `signup` / `logout` Server Action，表單用 `useActionState`；Supabase 錯誤碼在 `errorMessages` 對照成中文。
+  - 驗證身分一律用 `getClaims()`（驗 JWT 簽章），不要用 `getSession()`（只讀 cookie、不驗證）。
+  - 瀏覽器端沒有 Supabase client（沒有 `lib/supabase/client.ts`），不要加。
 
 - 登入、登出只在 Server Action / Route Handler 執行：用 `@supabase/ssr` 的 server client 串接 Supabase Auth，token 存成同網域的 **HttpOnly cookie**。
 - 瀏覽器端不使用 supabase-js（它讀不到 HttpOnly cookie），所有 Supabase 操作都走 server。
@@ -105,24 +117,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### 資料夾分工
 
 - `hooks/`：自訂 React hooks（client 端）。
-- `lib/`：非畫面的工具程式碼；之後的 axios instance、`queryOptions`、Supabase client、zod schema 也放這裡。
+- `lib/`：非畫面的工具程式碼；Supabase client（`lib/supabase/`）、Auth（`lib/auth/`）、環境變數（`lib/env.ts`）已在這裡，之後的 axios instance、`queryOptions` 也放這裡。
 - `lib/site.ts`：網站名稱、標語、描述，header、`<title>`、首頁都從這裡讀，不要把名稱寫死在元件裡。
 
 ### 範例功能（Notely 筆記）
 
 - 模板內建一個完整但簡化的範例：行銷首頁 `/`、`/login`、`/signup`、筆記 CRUD `/notes`。新功能照這組的寫法做。
 - 路由用 route group 分三種版型：`(marketing)`、`(auth)`、`(app)`；登入保護只加在 `(app)`。
-- 目前是**靜態階段**：表單不送出、筆記是 `app/(app)/notes/page.tsx` 裡的假資料，標了「靜態階段」註解的地方都是之後要接 Auth / API 的位置。
+- 登入、註冊、登出已串 Supabase；筆記仍是**靜態階段**：筆記是 `app/(app)/notes/page.tsx` 裡的假資料，標了「靜態階段」註解的地方都是之後要接 API 的位置。
 - 不做 mock 後端：CRUD 會真的串 Nest、真的部署。
 - 進度與下一步（依序）：
   1. ✅ 靜態畫面（四頁）＋ 深色模式切換
-  2. ✅ 部署空殼到 Cloudflare（OpenNext）：`cacheComponents` 有已知 bug 先關閉；`proxy.ts` 目前只加 `x-proxy: ok` header 供驗證
-  3. ⏭️ Supabase Auth：註冊、登入、登出、`proxy.ts` 刷新 token、`(app)` 擋未登入（只做 email + 密碼）
-     - 這步是 Next server ↔ Supabase，不經過 Nest；`/api/*` 轉發給 Nest 留到第 5 步。
-     - 開工前要使用者提供：Supabase 專案（必須和 Nest 同一個，Nest 才驗得了 JWT）、Project URL、publishable（anon）key。
-     - 環境變數要設三處：本機 `.env`、Cloudflare「Build variables」（`NEXT_PUBLIC_*` 在 build 時寫進 bundle）、Cloudflare「Variables & Secrets」（runtime）；用 zod 驗證。
-     - 待使用者決定：Supabase 要不要開 email 驗證（開了要多做 callback 路由，並在 Supabase 加 localhost 與 workers.dev 的 redirect URL）。
-  4. zod、axios ×2、TanStack Query 骨架，`lib/notes.ts` 放 schema 與 `queryOptions`
+  2. ✅ 部署空殼到 Cloudflare（OpenNext）：`cacheComponents` 有已知 bug 先關閉；`proxy.ts` 在 Workers 上實測可用
+  3. ✅ Supabase Auth：註冊、登入、登出、`proxy.ts` 刷新 token、`(app)` 擋未登入（只做 email + 密碼）
+     - Supabase 專案 `project-template`（Tokyo `ap-northeast-1`），之後 Nest 也接這個（Nest 用 JWKS 驗 JWT、連線走 Supavisor transaction mode port 6543）。
+     - 不做 email 驗證（Supabase「Confirm email」關閉）；要開時另做 callback 路由，並在 Supabase 加 localhost 與 workers.dev 的 redirect URL。
+     - 環境變數只有 `NEXT_PUBLIC_*` 兩個：本機 `.env.local`、Cloudflare「Build variables」；目前不需要 runtime 變數。
+  4. ⏭️ axios ×2、TanStack Query 骨架（zod 已裝），`lib/notes.ts` 放 schema 與 `queryOptions`
   5. Nest 完成後接上 CRUD，刪掉假資料
 
 ### Provider 寫法
