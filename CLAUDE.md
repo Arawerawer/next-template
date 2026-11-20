@@ -52,6 +52,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 目前沒用 ISR / `revalidateTag`，`open-next.config.ts` 是空設定，不綁 R2 / D1 / Durable Objects；**不要開 `enableCacheInterception`**（和 PPR 衝突）。
 - 不要加 `export const runtime = "edge"`，OpenNext 不支援 edge runtime。
 - `package.json` 的 `allowScripts` 是 npm 12 的安裝腳本白名單（`esbuild`、`workerd` 要下載平台執行檔）。
+- Workers Builds 用 **npm 10.9.2** 跑 `npm ci`；本機是 npm 12，兩者處理 peer dependency 的方式不同（例如 `@opennextjs/aws` 的 `diff@^9` 和 `shadcn` 的 `diff@^8`）。新增或升級套件後，用 `npx npm@10.9.2 install --ignore-scripts` 重新產生 `package-lock.json`，再用 `npx npm@10.9.2 ci --dry-run --ignore-scripts` 確認通過。
 
 ## 文件維護
 
