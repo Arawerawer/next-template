@@ -80,6 +80,46 @@ next-template/
 - Node 版本寫在 `.node-version`，Cloudflare 部署時也用同一版。
 - npm 版本寫死在 `package.json`（`packageManager`、`engines`），版本不符時 `npm install` 會直接報錯。原因是 npm 11 以後產生的 `package-lock.json`，Cloudflare 部署時的 `npm ci` 可能不接受。
 
+### 升級 Node / npm 版本
+
+**1. 切換版本**
+
+```bash
+nvm install 24.22.1
+nvm use 24.22.1
+npm -v        # 記下顯示的 npm 版本，下一步要用
+```
+
+**2. 改三個地方**
+
+| 檔案 | 改成 |
+|---|---|
+| `.node-version` | `24.22.1` |
+| `package.json` → `packageManager` | `"npm@<npm -v 的版本>"` |
+| `package.json` → `engines.npm` | `"<npm -v 的版本>"` |
+
+**3. 重裝套件**
+
+```bash
+rm -r node_modules
+npm install
+npm ci --dry-run --ignore-scripts    # 沒報錯才繼續
+```
+
+**4. 推上去確認**
+
+commit、push 後，看 Cloudflare build log：
+
+- 開頭：`Detected the following tools from environment: npm@<新版>, nodejs@<新版>`
+- 結尾：`Success! Build completed.`
+
+**5. 其他電腦**
+
+```bash
+nvm install 24.22.1
+nvm use 24.22.1
+```
+
 ---
 
 ## 環境變數
