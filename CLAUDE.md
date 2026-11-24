@@ -65,8 +65,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `proxy.ts`（Node middleware）在 OpenNext 1.20.3 起是 experimental；若在 Workers 上不能跑，退回 `middleware.ts`，或改用 Route Handler 轉發 `/api/*`。
 - 目前沒用 ISR / `revalidateTag`，`open-next.config.ts` 是空設定，不綁 R2 / D1 / Durable Objects；**不要開 `enableCacheInterception`**（和 PPR 衝突）。
 - 不要加 `export const runtime = "edge"`，OpenNext 不支援 edge runtime。
-- `package.json` 的 `allowScripts` 是 npm 12 的安裝腳本白名單（`esbuild`、`workerd` 要下載平台執行檔）。
-- Workers Builds 用 **npm 10.9.2** 跑 `npm ci`；本機是 npm 12，兩者處理 peer dependency 的方式不同（例如 `@opennextjs/aws` 的 `diff@^9` 和 `shadcn` 的 `diff@^8`）。新增或升級套件後，用 `npx npm@10.9.2 install --ignore-scripts` 重新產生 `package-lock.json`，再用 `npx npm@10.9.2 ci --dry-run --ignore-scripts` 確認通過。
+- **npm 版本鎖死 10.9.7**（Node 22.22.2 內建版本）：本機、其他電腦、Workers Builds 必須同一版，否則 lockfile 會壞。
+  - 原因：`@opennextjs/aws` 用 peer dependency 要 `diff@^9`、`shadcn` 要 `diff@^8`；npm 10 和 npm 11/12 對這種 peer dependency 的擺法不同，npm 12 寫出的 lockfile 會被 Workers Builds 的 `npm ci` 判定 `Missing: diff@9.0.0` 而 build 失敗。
+  - `package.json` 的 `packageManager: "npm@10.9.7"`：Workers Builds 照這個欄位切換 npm 版本（官方說這是唯一方式），不設會用它的預設版本，預設版本變了部署就可能突然壞掉。
+  - `engines.npm: "10.9.7"` ＋ `.npmrc` 的 `engine-strict=true`：版本不符的電腦跑 `npm install` 會直接報 `EBADENGINE`，不會改到 lockfile。
+  - 換電腦：`nvm install 22.22.2` → `nvm use 22.22.2`，`npm -v` 確認是 10.9.7。
+  - 要升 npm 大版本時，`packageManager`、`engines` 一起改，刪掉 `node_modules` 重新 `npm install`，再用 `npm ci --dry-run --ignore-scripts` 確認。
+- `package.json` 的 `allowScripts` 是 npm 12 的安裝腳本白名單（`esbuild`、`workerd` 要下載平台執行檔）；npm 10 不認這個欄位、安裝腳本照常執行，留著是為了之後升 npm 12。
 
 ## 文件維護
 

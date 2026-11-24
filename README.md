@@ -63,11 +63,20 @@ next-template/
 ├── wrangler.jsonc            # Cloudflare Worker 設定（名稱、相容性旗標）
 ├── .env.example              # 環境變數範本（複製成 .env.local 後填值）
 ├── .dev.vars.example         # 本機 preview 用的 Worker 變數範本（複製成 .dev.vars）
+├── .npmrc                    # engine-strict：npm 版本不符時拒絕安裝
 ├── eslint.config.mjs
 ├── tsconfig.json             # 路徑別名 @/* → 專案根目錄
 ├── AGENTS.md                 # Next 自動產生的 AI 規則
 └── CLAUDE.md                 # Claude Code 專案說明
 ```
+
+---
+
+## 開發環境
+
+- Node **22.22.2**、npm **10.9.7**（Node 22.22.2 內建的 npm，不要另外升級）。
+- 用 nvm 的話：`nvm install 22.22.2` → `nvm use 22.22.2`。
+- npm 版本寫死在 `package.json`（`packageManager`、`engines`），版本不符時 `npm install` 會直接報錯。原因是 npm 11 以後產生的 `package-lock.json`，Cloudflare 部署時的 `npm ci` 可能不接受。
 
 ---
 
