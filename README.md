@@ -68,7 +68,8 @@ next-template/
 ├── eslint.config.mjs
 ├── tsconfig.json             # 路徑別名 @/* → 專案根目錄
 ├── AGENTS.md                 # Next 自動產生的 AI 規則
-└── CLAUDE.md                 # Claude Code 專案說明
+├── CLAUDE.md                 # Claude Code 專案說明
+└── PLAN.md                   # 臨時交接檔（建後端的計畫），用完即刪
 ```
 
 ---
